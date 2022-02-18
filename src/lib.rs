@@ -1,0 +1,15 @@
+pub enum CharacterType {
+    Invalid = -1,
+    Alphabet,
+    Num,
+    Dot,
+    Whitespace,
+    Arithmatic,
+    Logic,
+    Equal,
+    Deliminator,
+    Quote,
+    And,
+    Or,
+    EOF,
+}

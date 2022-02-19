@@ -22,10 +22,16 @@ fn parse_args(args: &Vec<String>) -> Result<String, &str> {
     if args.len() < 2 {
         Err("No filename provided. use: dlang <filename>")
     } else if args[1] == "test" {
-        let test = "int fact( int n) {
-if (n << 1)
+        let test = "/* A program to compute factorials */
+int fact( int n) {
+if (n <= 1)
 return 1;
-else\"name\"";
+else
+return n*fact(n-1);
+}
+void main(void) {
+int x;
+x = 1;";
         Ok(test.to_string())
     } else {
         let filename = &args[1];

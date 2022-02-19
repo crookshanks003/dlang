@@ -1,4 +1,4 @@
-use dlang::{check_if_keyword, dfa::Dfa};
+use plang::{check_if_keyword, dfa::Dfa};
 use std::{collections::HashSet, process};
 
 pub struct Lexer {
@@ -37,6 +37,23 @@ impl Lexer {
             if self.dfa.curr_state == 0 && self.dfa.prev_state == 0 {
                 sp += 1;
                 fp += 1;
+                if ch == '\n' {
+                    line += 1;
+                }
+                continue;
+            }
+
+            if ch == '/' && self.code[fp + 1] == '*' {
+                match self.handle_comments(&mut fp, &mut line) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        eprintln!("{} at `{}` line: {}", err, ch, line);
+                        process::exit(1);
+                    }
+                }
+                fp += 1;
+                sp = fp;
+                self.dfa.curr_state = 0;
                 continue;
             }
 
@@ -74,9 +91,7 @@ impl Lexer {
                 };
             } else if ch == '$' {
                 break;
-            } else if ch == '\n' {
-                line += 1;
-            }
+            } 
 
             if self.dfa.curr_state == -1 {
                 eprintln!("Invalid char at `{}`, line: {}", ch, line);
@@ -101,6 +116,22 @@ impl Lexer {
             }
         }
         self.dfa.curr_state = 14;
+        Ok(())
+    }
+
+    fn handle_comments(&mut self, fp: &mut usize, line: &mut u32) -> Result<(), &str> {
+        loop {
+            *fp += 1;
+            if self.code[*fp] == '\n' {
+                *line += 1;
+            }
+            if self.code[*fp] == '*' && self.code[*fp + 1] == '/' {
+                *fp += 1;
+                break;
+            } else if self.code[*fp] == '$' {
+                return Err("Unterminated comment block");
+            }
+        }
         Ok(())
     }
 }

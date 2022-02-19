@@ -25,7 +25,7 @@ fn parse_args(args: &Vec<String>) -> Result<String, &str> {
         let test = "int fact( int n) {
 if (n << 1)
 return 1;
-else";
+else\"name\"";
         Ok(test.to_string())
     } else {
         let filename = &args[1];

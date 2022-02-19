@@ -1,5 +1,5 @@
-use std::process;
-use dlang::{check_if_keyword, dfa::Dfa, KEYWORDS};
+use dlang::{check_if_keyword, dfa::Dfa};
+use std::{collections::HashSet, process};
 
 pub struct Lexer {
     code: Vec<char>,
@@ -63,12 +63,21 @@ impl Lexer {
                 fp -= 1;
             }
 
-            if ch == '$' {
+            if ch == '"' {
+                fp += 1;
+                match self.handle_string(&mut fp) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        eprintln!("{} at `{}` line: {}", err, ch, line);
+                        process::exit(1);
+                    }
+                };
+            } else if ch == '$' {
                 break;
-            }
-            if ch == '\n' {
+            } else if ch == '\n' {
                 line += 1;
             }
+
             if self.dfa.curr_state == -1 {
                 eprintln!("Invalid char at `{}`, line: {}", ch, line);
                 process::exit(1);
@@ -77,5 +86,21 @@ impl Lexer {
             fp += 1;
         }
         tokens
+    }
+
+    fn handle_string(&mut self, fp: &mut usize) -> Result<(), &str> {
+        let escape_chars: HashSet<char> = HashSet::from(['n', 't', 'r', '\\', '"']);
+        loop {
+            *fp += 1;
+            if self.code[*fp] == '"' {
+                break;
+            } else if self.code[*fp] == '\\' && !escape_chars.contains(&self.code[*fp + 1]) {
+                return Err("Bad escape sequence");
+            } else if self.code[*fp] == '$' || self.code[*fp] == '\n' {
+                return Err("Unterminated string literal");
+            }
+        }
+        self.dfa.curr_state = 14;
+        Ok(())
     }
 }

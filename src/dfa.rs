@@ -1,10 +1,8 @@
-use dlang::CharacterType;
-
-
+use crate::{CharacterType, DFA_TABLE};
 
 pub struct Dfa {
-    curr_state: i32,
-    prev_state: i32,
+    pub curr_state: isize,
+    pub prev_state: isize,
 }
 
 impl Dfa {
@@ -30,6 +28,16 @@ impl Dfa {
             '$' => CharacterType::EOF,
             '.' => CharacterType::Dot,
             _ => CharacterType::Invalid,
+        }
+    }
+
+    pub fn transition_state(&mut self, ch: char) {
+        self.prev_state = self.curr_state;
+        let char_type = Dfa::get_character_type(ch);
+        if let CharacterType::Invalid = char_type {
+            self.curr_state = -1;
+        } else {
+            self.curr_state = DFA_TABLE[self.curr_state as usize][char_type as usize] as isize;
         }
     }
 }

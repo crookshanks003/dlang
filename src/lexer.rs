@@ -1,21 +1,81 @@
+use std::process;
+use dlang::{check_if_keyword, dfa::Dfa, KEYWORDS};
+
 pub struct Lexer {
-    code: String,
+    code: Vec<char>,
+    dfa: Dfa,
 }
 
-struct Token<'a> {
+#[derive(Debug)]
+pub struct Token<'a> {
     token: &'a str,
-    lexeme: &'a str,
-    line: u32
+    lexeme: String,
+    line: u32,
 }
 
 impl Lexer {
-    pub fn new(code: String) -> Self {
-        Lexer { code }
+    pub fn new(code: &mut String) -> Self {
+        code.push('$');
+        let dfa = Dfa::new();
+        Lexer {
+            code: code.chars().collect(),
+            dfa,
+        }
     }
 
-    pub fn get_tokens(&self) -> Vec<Token> {
+    pub fn get_tokens(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
+        let mut sp: usize = 0;
+        let mut fp: usize = 0;
+        let mut line: u32 = 0;
 
+        loop {
+            let ch = self.code[fp];
+
+            self.dfa.transition_state(ch);
+
+            if self.dfa.curr_state == 0 && self.dfa.prev_state == 0 {
+                sp += 1;
+                fp += 1;
+                continue;
+            }
+
+            if self.dfa.curr_state == 0 {
+                let lexeme = String::from_iter(self.code[sp..fp].iter());
+                let token = match self.dfa.prev_state {
+                    1 if check_if_keyword(&lexeme) => "keyword",
+                    1 => "id",
+                    2 => "int",
+                    3 => "float",
+                    4 | 5 | 6 | 7 | 10 | 12 => "op",
+                    8 => "del",
+                    14 => "str",
+                    _ => unreachable!(),
+                };
+
+                tokens.push(Token {
+                    token,
+                    lexeme,
+                    line,
+                });
+
+                sp = fp;
+                fp -= 1;
+            }
+
+            if ch == '$' {
+                break;
+            }
+            if ch == '\n' {
+                line += 1;
+            }
+            if self.dfa.curr_state == -1 {
+                eprintln!("Invalid char at `{}`, line: {}", ch, line);
+                process::exit(1);
+            }
+
+            fp += 1;
+        }
         tokens
     }
 }
